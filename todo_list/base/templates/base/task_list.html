@@ -1,0 +1,110 @@
+{% extends 'base/main.html' %} {% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<div class="header-bar">
+    <div>
+        <h1>Hello {{request.user|title}}</h1>
+        <h3 style="margin:0">You have <i>{{count}}</i> incomplete task{{ count|pluralize:"s" }}</h3>
+    </div>
+
+    {% if request.user.is_authenticated %}
+    <a href="{%url 'logout'%}">Logout</a> {% else %}
+    <a href="{% url 'login'%}">Login</a> {% endif %}
+</div>
+
+{% if tasks is not None%}
+<div class="statistics-wrapper">
+    <h2>Statistics</h2>
+
+    <div class="statistics-item">
+        <h3>Total Tasks</h3>
+        <p>{{ statistic.total_tasks }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>Completed Tasks</h3>
+        <p>{{ statistic.completed_tasks }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>In Progress Tasks</h3>
+        <p>{{ statistic.in_progress_tasks }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>Pending Tasks</h3>
+        <p>{{ statistic.pending_tasks }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>High Priority Tasks</h3>
+        <p>{{ statistic.high_priority_tasks }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>Average Completion Time</h3>
+        <p>{{ statistic.average_completion_time }}</p>
+    </div>
+    <div class="statistics-item">
+        <h3>Tasks per Category</h3>
+        <p>{{ statistic.tasks_per_category }}</p>
+    </div>
+    <a id="add-link" href="{% url 'form'%}">&#x2b;</a>
+
+    <!-- Додайте розмітку для інших полів статистики, які вам потрібні -->
+</div>
+{%endif%}
+
+<!-- Hidden form. Form submits new item positions -->
+<form style="display: none;" id="reorderForm" method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" id="positionInput" name="position">
+</form>
+
+
+<div id="tasklist" class="task-items-wrapper">
+    {% for task in tasks %}
+    <div class="task-wrapper" data-position="{{task.pk}}">
+        <div class="task-title">
+            {% if task.status == "completed" %}
+            <div class="task-complete-icon"></div>
+            <i><s><a href="">{{task}}</a></s></i> {% else %}
+            <div class="task-incomplete-icon"></div>
+            <a href="{% url 'change_status' task.id %}">{{task}}</a> {% endif %}
+        </div>
+        <div class="task-controls">
+            <a class="delete-link" href="{% url 'delete' task.id%}">&#215;</a>
+            <span class="handle">&nbsp;&#10247;</span>
+        </div>
+    </div>
+
+    {% empty %}
+    <div style="text-align: center; padding-bottom: 10px; line-height: 1em;">
+        <h3>No new tasks created.</h3>
+        <h3>Create a <a style="text-decoration: none; color: #e53935;" href="{% url 'form'%}">New task</a> ! </h3>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    var taskList = document.getElementById("tasklist");
+    var reorderForm = document.getElementById("reorderForm");
+    var positionInput = document.getElementById("positionInput");
+
+    let sortable = Sortable.create(taskList, {
+        handle: '.handle',
+        ghostClass: 'dropArea',
+        chosenClass: 'selectedTask',
+
+    });
+
+    function reordering() {
+        const rows = document.getElementsByClassName("task-wrapper");
+        let pos = [];
+        for (let row of rows) {
+            pos.push(row.dataset.position);
+        }
+        console.log(pos.join(","))
+        positionInput.value = pos.join(',');
+        reorderForm.submit();
+    }
+
+    document.ondrop = reordering
+</script>
+
+{% endblock content %}
